@@ -1,12 +1,14 @@
-SSID = "ssid"
-PASSWORD = "wifipassword"
+SSID = "nadazero-sotao"
+PASSWORD = "1122334455"
 
 DEVICE_NAME = 'atu' 
 
 MQTT_SERVER = "mqtt-radio"
 MQTT_CLI_ID = "xpto"
-MQTT_TOPIC_PUB = b'MQTT_ATU/' + DEVICE_NAME + '/cmd'
-MQTT_TOPIC_SUB = b'MQTT_ATU/' + DEVICE_NAME + '/info'
+MQTT_TOPIC_PUB = b'/CT7ANO/' + DEVICE_NAME + '/cmd'
+MQTT_TOPIC_SUB = b'/CT7ANO/' + DEVICE_NAME + '/info'
+
+MQTT_PING_PERIOD = 5000 #ms
 
 MSG_LEVEL = 'debug'
 

@@ -6,7 +6,8 @@ import utime
 
 
 from machine import Pin
-from umqtt.simple import MQTTClient
+#from umqtt.simple import MQTTClient
+from umqtt.robust2 import MQTTClient
 
 def echo(msg, level='info'):
     print(level.upper(), msg)
@@ -29,20 +30,47 @@ if wlan.isconnected():
     
 sensor = Pin(16, Pin.IN)
 
-
-
-
 #TODO
 
 state = 0
 
 ##############################################################
+def mqtt_sub_cb(topic, msg, retained, duplicate):
+    echo((topic, msg, retained, duplicate))
+    #print(utime.ticks_ms())
+
+##############################################################
 def mqtt_connect():
-    mqtt_client = MQTTClient(config.MQTT_CLI_ID, config.MQTT_SERVER, keepalive=3600)
-    mqtt_client.connect()
+    global mqtt_client
+    
+    mqtt_client = MQTTClient(
+            config.MQTT_CLI_ID,
+            config.MQTT_SERVER,
+            #keepalive=3600,
+    )
+    
+    
+    mqtt_client.DEBUG = True
+    mqtt_client.KEEP_QOS0 = False
+    # Option, limits the possibility of only one unique message being queued.
+    mqtt_client.NO_QUEUE_DUPS = True
+    # Limit the number of unsent messages in the queue.
+    mqtt_client.MSG_QUEUE_MAX = 2
+
+    mqtt_client.set_callback(mqtt_sub_cb)
+    
+    #mqtt_client.connect()
+    
+    if not mqtt_client.connect(clean_session=False):
+        print("New session being set up")
+        mqtt_client.subscribe(b"/CT7ANO/atu/remote/pong/#")
+    
     echo(f'Connected to mqtt server: {config.MQTT_SERVER}')
+    
     led_mqtt.value(1)
+    
     mqtt_client.publish(config.MQTT_TOPIC_PUB + '/hello', 'hello')
+    
     return mqtt_client
 
 ##############################################################  
@@ -67,8 +95,6 @@ def btn_handler(p):
     new_time = utime.ticks_ms()
     elapsed_time = new_time - btn_last_time[pin]
     
-    
-
     # if it has been more that 1/5 of a second since the last event, we have a new event
     if elapsed_time > 75:
         b = btn_map[pin]
@@ -82,8 +108,6 @@ def btn_handler(p):
         #btn_presses[pin] +=1
         btn_last_time[pin] = new_time
 
-
-    
         mqtt_topic = config.MQTT_TOPIC_PUB + '/' + b['action']
     
         if p.value() == 0:
@@ -135,14 +159,33 @@ except OSError as e:
 
 builtin_led = machine.Pin(15, Pin.OUT)
 
+
+sleep_ms = 100
+ping_interval = config.MQTT_PING_PERIOD / sleep_ms
+
+i_ping = 0
+
 while True:
-    continue
-#    print('.', end='')
-    # only print on change in the button_presses value
-#     if button_presses != old_presses:
-#         print(button_presses)
-#         builtin_led.toggle()
-#         old_presses = button_presses
+    utime.sleep_ms(sleep_ms)
+    
+    ##############################################################
+    i_ping += 1
+    if i_ping == ping_interval:
+        i_ping = 0
+        mqtt_client.publish(config.MQTT_TOPIC_PUB + '/ping', str(utime.ticks_ms()))
+    ##############################################################
 
+    if mqtt_client.is_conn_issue():
+        while mqtt_client.is_conn_issue():
+            # If the connection is successful, the is_conn_issue
+            # method will not return a connection error.
+            mqtt_client.reconnect()
+        else:
+            mqtt_client.resubscribe()
+               
+    mqtt_client.check_msg() # needed when publish(qos=1), ping(), subscribe()
+    mqtt_client.send_queue()  # needed when using the caching capabilities for unsent messages
 
+mqtt_client.disconnect()
+led_mqtt.value(0)
 
