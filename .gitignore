@@ -1,4 +1,12 @@
 # Byte-compiled / optimized / DLL files
+config_wifi.py
+*/config_wifi.py
+.vscode
+.vscode/*
+
+
+.pymakr.conf
+
 __pycache__/
 *.py[cod]
 *$py.class
