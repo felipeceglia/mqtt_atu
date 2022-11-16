@@ -22,26 +22,69 @@ led_mqtt.value(0)
 echo('starting REMOTE UNIT...')
 
 ##############################################################
-echo (f'connecting to wifi: {config_wifi.SSID}...')
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
-wlan.connect(config_wifi.SSID, config_wifi.PASSWORD)
-time.sleep(5)
-if wlan.isconnected():
-    echo (f'connected to wifi: {config_wifi.SSID}')
+
+def wifi_connect(ssid, passwd):
+    #global config
+
+ #  connect to the internet
+    sta_if = network.WLAN(network.STA_IF)
+    count = 0
+
+    #echo(f'wifi connecting to {ssid}')
+    
+    if not sta_if.isconnected():
+        echo(f'connecting to wifi {ssid} ...')
+        sta_if.active(True)
+        #sta_if.ifconfig(('192.168.10.99', '255.255.255.0', '192.168.10.1', '8.8.8.8'))
+        sta_if.connect(ssid, passwd)
+
+        while (count < 5):
+            count += 1
+
+            status = sta_if.status()
+
+            #try:
+            #    with open('errors.txt', 'a') as outfile:
+            #        outfile.write('connect status = ' + str(status) + '\n')
+            #except OSError:
+            #    print('oops')
+
+            if (sta_if.isconnected()):
+                count = 0
+                break
+
+            #print('.', end = '')
+            utime.sleep(1)
+
+    if (count == 5):
+        count = 0
+
+        echo(f'cannot connect to wifi {ssid}, resetting')
+        utime.sleep(2)
+        machine.reset()
+
+
+    echo(f'wifi connected to {ssid}')
+    echo(('network config:', sta_if.ifconfig()))
+
+wifi_connect(config_wifi.SSID, config_wifi.PASSWORD)
+
+##############################################################
+
+
+# ##############################################################
+# echo (f'connecting to wifi: {config_wifi.SSID}...')
+# wlan = network.WLAN(network.STA_IF)
+# wlan.active(True)
+# wlan.connect(config_wifi.SSID, config_wifi.PASSWORD)
+# time.sleep(5)
+# if wlan.isconnected():
+#     echo (f'connected to wifi: {config_wifi.SSID}')
 ##############################################################    
     
 sensor = Pin(16, Pin.IN)
 
 #TODO
-
-state = 0
-
-#freq = 15000       
-#pin1 = 16#Pin(16, Pin.OUT)    
-#pin2 = 17#Pin(17, Pin.OUT)     
-#enable = 18#PWM(Pin(18))  
-#dc_motor = DCMotor(pin1, pin2, enable, freq)
 
 dc_motors = {}
 
@@ -75,40 +118,29 @@ def mqtt_sub_cb(topic, msg, retained, duplicate):
     if (topic[-1] == 'ping' and topic[-3] == config.DEVICE_ID):
         mqtt_client.publish(config.MQTT_TOPIC_PUB + '/info/' + topic[-2] + '/' + config.DEVICE_ID + '/pong', msg)
         
-    
-    if (topic[-1] == 'L_speed' and topic[-3] == config.DEVICE_ID):
-        echo (f'speed changed to {msg}')
-        speed = int(msg)
-
-    if (topic[-1] == 'L_freq' and topic[-3] == config.DEVICE_ID):
-        echo (f'freq changed to {msg}:')
-        freq = int(msg)
-        name = 'L'
-        config.dc_motors[name]['freq'] = freq
-        echo (config.dc_motors[name])
-        dc_motors_init()
-        
-
     ##############################################################    
-    if (topic[-1] == 'L' and topic[-3] == config.DEVICE_ID):
-        echo(f'L {msg}')
+    if ((topic[-1] == 'L' or topic[-1] == 'C') and topic[-3] == config.DEVICE_ID):
+
         name = topic[-1]
+
+        action, speed = msg.split('|')
+        speed = int(speed)
+
+        echo (f'got command {msg}')
 
         if speed < dc_motors[name]['min_speed']:
             speed = dc_motors[name]['min_speed']
-        
-        if speed > 100:
+        elif speed > 100:
             speed = 100
         
-        
-        if msg == '2':
+        if action == 'up':
             dc_motors[name]['m'].up(speed)
 
-        elif msg == '-2':
+        elif action == 'dwn':
             dc_motors[name]['m'].down(speed)
 
             
-        elif msg == '0':
+        elif action == 'stop':
             dc_motors[name]['m'].stop()
             
     ##############################################################

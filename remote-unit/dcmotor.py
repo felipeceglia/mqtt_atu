@@ -19,16 +19,12 @@ class DCMotor:
         
 ##############################################################                                          
         
-  def up(self,speed=100):
+  def up(self, speed=100):
 
     self.speed = speed
         
     self.duty_cycle = self.get_duty_cycle(speed)
    
-    print('up....',speed, self.duty_cycle)
-#    self.enable_pin.duty_ns(self.duty_cycle(self.speed))
-
-#    self.enable_pin.duty_ns(self.duty_cycle)
     self.enable_pin.duty_u16(self.duty_cycle)                            
     self.pin1.value(0)
     self.pin2.value(1)
@@ -40,8 +36,6 @@ class DCMotor:
     self.speed = speed
         
     self.duty_cycle = self.get_duty_cycle(speed)
-
-    print('dwn....',speed, self.duty_cycle)
 
     self.enable_pin.duty_u16(self.duty_cycle)   
     self.pin1.value(1)

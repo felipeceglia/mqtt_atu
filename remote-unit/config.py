@@ -21,6 +21,6 @@ MSG_LEVEL = 'debug'
 dc_motors = {
     #ok para motor de teste, tipo parabrisa solto
     'L': {
-        'pin_up': 16, 'pin_dwn':17, 'pin_pwm':18, 'freq': 15, 'min_duty':1000, 'min_speed':5
+        'pin_up': 16, 'pin_dwn':17, 'pin_pwm':18, 'freq': 15, 'min_duty':1000, 'min_speed':10
         }
     }
